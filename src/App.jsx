@@ -1,3 +1,4 @@
+import './firebase/firebase.js';
 import React from 'react';
 import StudentSignupForm from './components/StudentSignupForm';
 
