@@ -1,6 +1,5 @@
-// Trigger redeploy
-import './firebase/firebase.js';
 import React from 'react';
+import './firebase/firebase.js';
 import StudentSignupForm from './components/StudentSignupForm';
 
 function App() {
@@ -11,4 +10,6 @@ function App() {
     </main>
   );
 }
+
 export default App;
+
