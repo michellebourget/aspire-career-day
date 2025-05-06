@@ -7,35 +7,36 @@ const StudentSignupForm = () => {
 
   const handleSubmit = (e) => {
     e.preventDefault();
-    console.log('Submitted:', { name, email });
     setSubmitted(true);
   };
 
   return submitted ? (
-    <div className="text-green-600 font-semibold">Thank you for signing up!</div>
+    <div style={{ color: 'green', fontWeight: 'bold' }}>
+      Thank you for signing up!
+    </div>
   ) : (
-    <form onSubmit={handleSubmit} className="space-y-4">
-      <div>
-        <label className="block">Name:</label>
+    <form onSubmit={handleSubmit}>
+      <div style={{ marginBottom: '1rem' }}>
+        <label>Name:</label><br />
         <input
-          className="border rounded px-2 py-1 w-full"
           type="text"
           value={name}
           onChange={(e) => setName(e.target.value)}
           required
+          style={{ padding: '0.5rem', width: '100%' }}
         />
       </div>
-      <div>
-        <label className="block">Email:</label>
+      <div style={{ marginBottom: '1rem' }}>
+        <label>Email:</label><br />
         <input
-          className="border rounded px-2 py-1 w-full"
           type="email"
           value={email}
           onChange={(e) => setEmail(e.target.value)}
           required
+          style={{ padding: '0.5rem', width: '100%' }}
         />
       </div>
-      <button type="submit" className="bg-blue-600 text-white px-4 py-2 rounded">
+      <button type="submit" style={{ padding: '0.5rem 1rem', background: '#007bff', color: '#fff', border: 'none' }}>
         Submit
       </button>
     </form>
@@ -43,3 +44,4 @@ const StudentSignupForm = () => {
 };
 
 export default StudentSignupForm;
+

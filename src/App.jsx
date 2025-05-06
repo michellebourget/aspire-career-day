@@ -1,15 +1,17 @@
 import React from 'react';
-import './firebase/firebase.js';
 import StudentSignupForm from './components/StudentSignupForm';
 
 function App() {
   return (
-    <main className="p-4">
-      <h1 className="text-2xl font-bold mb-4">Aspire Career Day</h1>
+    <main style={{ padding: '20px' }}>
+      <h1 style={{ fontSize: '24px', fontWeight: 'bold', marginBottom: '20px' }}>
+        Aspire Career Day
+      </h1>
       <StudentSignupForm />
     </main>
   );
 }
 
 export default App;
+
 
