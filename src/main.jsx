@@ -1,14 +1,14 @@
 import React, { useEffect, useState } from 'react';
 import ReactDOM from 'react-dom/client';
-import { BrowserRouter, Routes, Route, useNavigate } from 'react-router-dom';
+import { BrowserRouter, Routes, Route, Navigate, useNavigate } from 'react-router-dom';
 import App from './App';
 import AdminDashboard from './components/AdminDashboard';
 import ProtectedRoute from './components/ProtectedRoute';
 import { auth } from './firebase/firebase';
-import { collection, query, where, getDocs } from 'firebase/firestore';
 import { db } from './firebase/firebase';
+import { collection, query, where, getDocs } from 'firebase/firestore';
 
-function RootApp() {
+const RoutesWithAuth = () => {
   const [user, setUser] = useState(null);
   const [role, setRole] = useState(null);
   const [loading, setLoading] = useState(true);
@@ -19,18 +19,15 @@ function RootApp() {
       setUser(currentUser);
 
       if (currentUser) {
-        const q = query(
-          collection(db, 'users'),
-          where('uid', '==', currentUser.uid)
-        );
+        const q = query(collection(db, 'users'), where('uid', '==', currentUser.uid));
         const snapshot = await getDocs(q);
 
         if (!snapshot.empty) {
           const userData = snapshot.docs[0].data();
-          setRole(userData.role);
+          const userRole = userData.role;
+          setRole(userRole);
 
           // Redirect based on role
-          const userRole = userData.role;
           if (userRole === 'admin') {
             navigate('/admin');
           } else if (userRole === 'teacher') {
@@ -77,13 +74,12 @@ function RootApp() {
       />
     </Routes>
   );
-}
+};
 
 ReactDOM.createRoot(document.getElementById('root')).render(
   <React.StrictMode>
     <BrowserRouter>
-      <RootApp />
+      <RoutesWithAuth />
     </BrowserRouter>
   </React.StrictMode>
 );
-
