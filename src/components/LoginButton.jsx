@@ -6,6 +6,8 @@ import {
   onAuthStateChanged
 } from 'firebase/auth';
 import { collection, query, where, getDocs } from 'firebase/firestore';
+import useRoleRedirect from '../hooks/useRoleRedirect';
+
 
 const LoginButton = () => {
   const [user, setUser] = useState(null);
@@ -24,6 +26,8 @@ const LoginButton = () => {
         if (!snapshot.empty) {
           const userData = snapshot.docs[0].data();
           setRole(userData.role);
+          useRoleRedirect(userData.role);
+
         } else {
           setRole('unknown');
         }
