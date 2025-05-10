@@ -12,7 +12,6 @@ const TeacherDashboard = ({ user }) => {
       if (!user?.email) return;
 
       try {
-        // Get sessions assigned to this teacher
         const sessionQuery = query(
           collection(db, 'sessions'),
           where('teacherEmail', '==', user.email)
@@ -26,11 +25,9 @@ const TeacherDashboard = ({ user }) => {
 
         const sessionNames = teacherSessions.map(s => s.name);
 
-        // Get all signups
         const signupSnapshot = await getDocs(collection(db, 'signups'));
         const allSignups = signupSnapshot.docs.map(doc => doc.data());
 
-        // Filter signups where students chose sessions assigned to this teacher
         const relevant = allSignups.filter(signup =>
           signup.sessions?.some(session => sessionNames.includes(session))
         );

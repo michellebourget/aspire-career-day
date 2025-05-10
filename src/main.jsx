@@ -28,14 +28,9 @@ const RoutesWithAuth = () => {
           const userRole = userData.role;
           setRole(userRole);
 
-          // Redirect to correct dashboard
-          if (userRole === 'admin') {
-            navigate('/admin');
-          } else if (userRole === 'teacher') {
-            navigate('/teacher');
-          } else {
-            navigate('/');
-          }
+          if (userRole === 'admin') navigate('/admin');
+          else if (userRole === 'teacher') navigate('/teacher');
+          else navigate('/');
         } else {
           setRole(null);
         }
