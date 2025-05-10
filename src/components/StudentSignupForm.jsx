@@ -2,10 +2,31 @@ import React, { useState } from 'react';
 import { collection, addDoc } from 'firebase/firestore';
 import { db } from '../firebase/firebase.js';
 
+// Example session options — you can change these later!
+const sessionOptions = [
+  "Veterinarian",
+  "Electrician",
+  "Social Worker",
+  "Software Developer",
+  "Chef",
+  "Entrepreneur",
+  "Nurse",
+  "Construction Manager"
+];
+
 const StudentSignupForm = () => {
   const [name, setName] = useState('');
   const [email, setEmail] = useState('');
+  const [selectedSessions, setSelectedSessions] = useState([]);
   const [submitted, setSubmitted] = useState(false);
+
+  const handleCheckboxChange = (session) => {
+    if (selectedSessions.includes(session)) {
+      setSelectedSessions(selectedSessions.filter(s => s !== session));
+    } else if (selectedSessions.length < 3) {
+      setSelectedSessions([...selectedSessions, session]);
+    }
+  };
 
   const handleSubmit = async (e) => {
     e.preventDefault();
@@ -14,6 +35,7 @@ const StudentSignupForm = () => {
       await addDoc(collection(db, 'signups'), {
         name,
         email,
+        sessions: selectedSessions,
         timestamp: new Date(),
       });
       setSubmitted(true);
@@ -48,6 +70,28 @@ const StudentSignupForm = () => {
           required
           style={{ padding: '0.5rem', width: '100%' }}
         />
+      </div>
+      <div style={{ marginBottom: '1rem' }}>
+        <label>Choose up to 3 sessions:</label>
+        <ul style={{ listStyle: 'none', paddingLeft: 0 }}>
+          {sessionOptions.map((session) => (
+            <li key={session}>
+              <label>
+                <input
+                  type="checkbox"
+                  value={session}
+                  checked={selectedSessions.includes(session)}
+                  onChange={() => handleCheckboxChange(session)}
+                  disabled={
+                    !selectedSessions.includes(session) && selectedSessions.length >= 3
+                  }
+                />
+                {' '}
+                {session}
+              </label>
+            </li>
+          ))}
+        </ul>
       </div>
       <button type="submit" style={{ padding: '0.5rem 1rem', background: '#007bff', color: '#fff', border: 'none' }}>
         Submit
