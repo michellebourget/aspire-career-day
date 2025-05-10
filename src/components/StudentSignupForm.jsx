@@ -1,19 +1,33 @@
-import React, { useState } from 'react';
-import { collection, addDoc } from 'firebase/firestore';
+import React, { useState, useEffect } from 'react';
+import { collection, getDocs, addDoc } from 'firebase/firestore';
 import { db } from '../firebase/firebase';
-import sessionOptions from '../data/sessions';
 
 const StudentSignupForm = () => {
   const [name, setName] = useState('');
   const [email, setEmail] = useState('');
   const [selectedSessions, setSelectedSessions] = useState([]);
   const [submitted, setSubmitted] = useState(false);
+  const [sessions, setSessions] = useState([]);
 
-  const handleCheckboxChange = (session) => {
-    if (selectedSessions.includes(session)) {
-      setSelectedSessions(selectedSessions.filter((s) => s !== session));
+  // Fetch sessions from Firestore
+  useEffect(() => {
+    const fetchSessions = async () => {
+      const snapshot = await getDocs(collection(db, 'sessions'));
+      const data = snapshot.docs.map((doc) => ({
+        id: doc.id,
+        ...doc.data()
+      }));
+      setSessions(data);
+    };
+
+    fetchSessions();
+  }, []);
+
+  const handleCheckboxChange = (sessionName) => {
+    if (selectedSessions.includes(sessionName)) {
+      setSelectedSessions(selectedSessions.filter((s) => s !== sessionName));
     } else if (selectedSessions.length < 3) {
-      setSelectedSessions([...selectedSessions, session]);
+      setSelectedSessions([...selectedSessions, sessionName]);
     }
   };
 
@@ -65,21 +79,21 @@ const StudentSignupForm = () => {
       <div style={{ marginBottom: '1rem' }}>
         <label>Choose up to 3 sessions:</label>
         <ul style={{ listStyle: 'none', paddingLeft: 0 }}>
-          {sessionOptions.map((session) => (
-            <li key={session}>
+          {sessions.map((session) => (
+            <li key={session.id}>
               <label>
                 <input
                   type="checkbox"
-                  value={session}
-                  checked={selectedSessions.includes(session)}
-                  onChange={() => handleCheckboxChange(session)}
+                  value={session.name}
+                  checked={selectedSessions.includes(session.name)}
+                  onChange={() => handleCheckboxChange(session.name)}
                   disabled={
-                    !selectedSessions.includes(session) &&
+                    !selectedSessions.includes(session.name) &&
                     selectedSessions.length >= 3
                   }
                 />
                 {' '}
-                {session}
+                {session.name}
               </label>
             </li>
           ))}
