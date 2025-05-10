@@ -1,18 +1,7 @@
 import React, { useState } from 'react';
 import { collection, addDoc } from 'firebase/firestore';
-import { db } from '../firebase/firebase.js';
-
-// Example session options — you can change these later!
-const sessionOptions = [
-  "Veterinarian",
-  "Electrician",
-  "Social Worker",
-  "Software Developer",
-  "Chef",
-  "Entrepreneur",
-  "Nurse",
-  "Construction Manager"
-];
+import { db } from '../firebase/firebase';
+import sessionOptions from '../data/sessions';
 
 const StudentSignupForm = () => {
   const [name, setName] = useState('');
@@ -22,7 +11,7 @@ const StudentSignupForm = () => {
 
   const handleCheckboxChange = (session) => {
     if (selectedSessions.includes(session)) {
-      setSelectedSessions(selectedSessions.filter(s => s !== session));
+      setSelectedSessions(selectedSessions.filter((s) => s !== session));
     } else if (selectedSessions.length < 3) {
       setSelectedSessions([...selectedSessions, session]);
     }
@@ -41,7 +30,7 @@ const StudentSignupForm = () => {
       setSubmitted(true);
     } catch (error) {
       console.error('Error saving to Firestore:', error);
-      alert('There was a problem saving your information. Please try again.');
+      alert('There was a problem saving your signup. Please try again.');
     }
   };
 
@@ -50,7 +39,7 @@ const StudentSignupForm = () => {
       Thank you for signing up!
     </div>
   ) : (
-    <form onSubmit={handleSubmit}>
+    <form onSubmit={handleSubmit} style={{ maxWidth: '500px' }}>
       <div style={{ marginBottom: '1rem' }}>
         <label>Name:</label><br />
         <input
@@ -61,6 +50,7 @@ const StudentSignupForm = () => {
           style={{ padding: '0.5rem', width: '100%' }}
         />
       </div>
+
       <div style={{ marginBottom: '1rem' }}>
         <label>Email:</label><br />
         <input
@@ -71,6 +61,7 @@ const StudentSignupForm = () => {
           style={{ padding: '0.5rem', width: '100%' }}
         />
       </div>
+
       <div style={{ marginBottom: '1rem' }}>
         <label>Choose up to 3 sessions:</label>
         <ul style={{ listStyle: 'none', paddingLeft: 0 }}>
@@ -83,7 +74,8 @@ const StudentSignupForm = () => {
                   checked={selectedSessions.includes(session)}
                   onChange={() => handleCheckboxChange(session)}
                   disabled={
-                    !selectedSessions.includes(session) && selectedSessions.length >= 3
+                    !selectedSessions.includes(session) &&
+                    selectedSessions.length >= 3
                   }
                 />
                 {' '}
@@ -93,6 +85,7 @@ const StudentSignupForm = () => {
           ))}
         </ul>
       </div>
+
       <button type="submit" style={{ padding: '0.5rem 1rem', background: '#007bff', color: '#fff', border: 'none' }}>
         Submit
       </button>
