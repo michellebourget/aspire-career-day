@@ -1,7 +1,6 @@
 import React, { useEffect, useState } from 'react';
-import { db } from '../firebase/firebase';
+import { db, auth } from '../firebase/firebase';
 import { collection, getDocs, query, where } from 'firebase/firestore';
-import { auth } from '../firebase/firebase';
 
 const TeacherDashboard = ({ user }) => {
   const [sessions, setSessions] = useState([]);
@@ -9,37 +8,41 @@ const TeacherDashboard = ({ user }) => {
   const [loading, setLoading] = useState(true);
 
   useEffect(() => {
-    const fetchSessionsAndSignups = async () => {
+    const fetchData = async () => {
       if (!user?.email) return;
 
-      // Step 1: Get sessions assigned to this teacher
-      const sessionQuery = query(
-        collection(db, 'sessions'),
-        where('teacherEmail', '==', user.email)
-      );
-      const sessionSnapshot = await getDocs(sessionQuery);
-      const teacherSessions = sessionSnapshot.docs.map(doc => ({
-        id: doc.id,
-        ...doc.data(),
-      }));
+      try {
+        // Get sessions assigned to this teacher
+        const sessionQuery = query(
+          collection(db, 'sessions'),
+          where('teacherEmail', '==', user.email)
+        );
+        const sessionSnapshot = await getDocs(sessionQuery);
+        const teacherSessions = sessionSnapshot.docs.map(doc => ({
+          id: doc.id,
+          ...doc.data(),
+        }));
+        setSessions(teacherSessions);
 
-      const sessionNames = teacherSessions.map(session => session.name);
+        const sessionNames = teacherSessions.map(s => s.name);
 
-      // Step 2: Get all student signups
-      const signupSnapshot = await getDocs(collection(db, 'signups'));
-      const allSignups = signupSnapshot.docs.map(doc => doc.data());
+        // Get all signups
+        const signupSnapshot = await getDocs(collection(db, 'signups'));
+        const allSignups = signupSnapshot.docs.map(doc => doc.data());
 
-      // Step 3: Filter signups for sessions this teacher leads
-      const relevantSignups = allSignups.filter(signup =>
-        signup.sessions?.some(session => sessionNames.includes(session))
-      );
-
-      setSessions(teacherSessions);
-      setSignups(relevantSignups);
-      setLoading(false);
+        // Filter signups where students chose sessions assigned to this teacher
+        const relevant = allSignups.filter(signup =>
+          signup.sessions?.some(session => sessionNames.includes(session))
+        );
+        setSignups(relevant);
+      } catch (err) {
+        console.error('Error loading teacher data:', err);
+      } finally {
+        setLoading(false);
+      }
     };
 
-    fetchSessionsAndSignups();
+    fetchData();
   }, [user]);
 
   if (loading) return <div style={{ padding: '20px' }}>Loading your sessions...</div>;
@@ -47,7 +50,7 @@ const TeacherDashboard = ({ user }) => {
   return (
     <div style={{ padding: '20px' }}>
       <h2>Teacher Dashboard</h2>
-      <p>Welcome, {user.displayName}!</p>
+      <p>Welcome, {user.displayName || user.email}!</p>
 
       <button
         onClick={() => auth.signOut()}
@@ -64,7 +67,7 @@ const TeacherDashboard = ({ user }) => {
       </button>
 
       {sessions.length === 0 ? (
-        <p style={{ marginTop: '2rem' }}>You don’t have any sessions assigned.</p>
+        <p style={{ marginTop: '2rem' }}>You have no assigned sessions.</p>
       ) : (
         sessions.map(session => (
           <div key={session.id} style={{ marginTop: '2rem' }}>
@@ -74,7 +77,7 @@ const TeacherDashboard = ({ user }) => {
                 .filter(signup => signup.sessions.includes(session.name))
                 .map((signup, i) => (
                   <li key={i}>
-                    {signup.name} – {signup.email}
+                    {signup.name} — {signup.email}
                   </li>
                 ))}
             </ul>
