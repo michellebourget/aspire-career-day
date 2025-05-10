@@ -1,6 +1,6 @@
 import React, { useEffect, useState } from 'react';
 import { collection, getDocs } from 'firebase/firestore';
-import { db } from '../firebase/firebase';
+import { db } from '../firebase/firebase.js';
 
 const AdminDashboard = () => {
   const [students, setStudents] = useState([]);
