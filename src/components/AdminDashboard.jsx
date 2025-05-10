@@ -23,8 +23,15 @@ const AdminDashboard = () => {
       ) : (
         <ul>
           {students.map(student => (
-            <li key={student.id}>
-              {student.name} — {student.email}
+            <li key={student.id} style={{ marginBottom: '1rem' }}>
+              <strong>{student.name}</strong> — {student.email}
+              {student.sessions && student.sessions.length > 0 && (
+                <ul style={{ marginTop: '0.5rem', paddingLeft: '1rem' }}>
+                  {student.sessions.map((s, index) => (
+                    <li key={index}>🗓 {s}</li>
+                  ))}
+                </ul>
+              )}
             </li>
           ))}
         </ul>
@@ -34,3 +41,4 @@ const AdminDashboard = () => {
 };
 
 export default AdminDashboard;
+
