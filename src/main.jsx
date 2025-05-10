@@ -61,30 +61,17 @@ const RoutesWithAuth = () => {
           </ProtectedRoute>
         }
       />
-      <Route
+import TeacherDashboard from './components/TeacherDashboard'; // Add this at the top with your other imports
+
+<Route
   path="/teacher"
   element={
     <ProtectedRoute user={user} role={role} requiredRole="teacher">
-      <div style={{ padding: '20px' }}>
-        <h2>Teacher Dashboard</h2>
-        <p>Welcome, teacher!</p>
-        <button
-          onClick={() => auth.signOut()}
-          style={{
-            marginTop: '1rem',
-            padding: '0.5rem 1rem',
-            background: '#dc3545',
-            color: '#fff',
-            border: 'none',
-            borderRadius: '4px',
-          }}
-        >
-          Sign Out
-        </button>
-      </div>
+      <TeacherDashboard user={user} />
     </ProtectedRoute>
   }
 />
+
 
     </Routes>
   );
