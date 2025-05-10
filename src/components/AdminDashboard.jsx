@@ -1,18 +1,21 @@
 import React, { useEffect, useState } from 'react';
 import { collection, getDocs } from 'firebase/firestore';
-import { db } from '../firebase/firebase.js';
+import { db } from '../firebase/firebase';
 
 const AdminDashboard = () => {
   const [students, setStudents] = useState([]);
 
   useEffect(() => {
-    const fetchStudents = async () => {
-      const querySnapshot = await getDocs(collection(db, 'signups'));
-      const data = querySnapshot.docs.map(doc => ({ id: doc.id, ...doc.data() }));
+    const fetchSignups = async () => {
+      const snapshot = await getDocs(collection(db, 'signups'));
+      const data = snapshot.docs.map((doc) => ({
+        id: doc.id,
+        ...doc.data(),
+      }));
       setStudents(data);
     };
 
-    fetchStudents();
+    fetchSignups();
   }, []);
 
   return (
@@ -21,14 +24,14 @@ const AdminDashboard = () => {
       {students.length === 0 ? (
         <p>No signups yet.</p>
       ) : (
-        <ul>
-          {students.map(student => (
-            <li key={student.id} style={{ marginBottom: '1rem' }}>
+        <ul style={{ listStyle: 'none', paddingLeft: 0 }}>
+          {students.map((student) => (
+            <li key={student.id} style={{ marginBottom: '1.5rem' }}>
               <strong>{student.name}</strong> — {student.email}
-              {student.sessions && student.sessions.length > 0 && (
-                <ul style={{ marginTop: '0.5rem', paddingLeft: '1rem' }}>
-                  {student.sessions.map((s, index) => (
-                    <li key={index}>🗓 {s}</li>
+              {student.sessions && (
+                <ul style={{ marginTop: '0.5rem', paddingLeft: '1.5rem' }}>
+                  {student.sessions.map((session, index) => (
+                    <li key={index}>🗓 {session}</li>
                   ))}
                 </ul>
               )}
@@ -41,4 +44,3 @@ const AdminDashboard = () => {
 };
 
 export default AdminDashboard;
-
