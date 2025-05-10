@@ -1,13 +1,26 @@
 import React, { useState } from 'react';
+import { collection, addDoc } from 'firebase/firestore';
+import { db } from '../firebase/firebase.js';
 
 const StudentSignupForm = () => {
   const [name, setName] = useState('');
   const [email, setEmail] = useState('');
   const [submitted, setSubmitted] = useState(false);
 
-  const handleSubmit = (e) => {
+  const handleSubmit = async (e) => {
     e.preventDefault();
-    setSubmitted(true);
+
+    try {
+      await addDoc(collection(db, 'signups'), {
+        name,
+        email,
+        timestamp: new Date(),
+      });
+      setSubmitted(true);
+    } catch (error) {
+      console.error('Error saving to Firestore:', error);
+      alert('There was a problem saving your information. Please try again.');
+    }
   };
 
   return submitted ? (
@@ -44,4 +57,3 @@ const StudentSignupForm = () => {
 };
 
 export default StudentSignupForm;
-
