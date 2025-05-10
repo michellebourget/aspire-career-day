@@ -1,6 +1,8 @@
 import React, { useEffect, useState } from 'react';
 import { collection, getDocs } from 'firebase/firestore';
 import { db } from '../firebase/firebase';
+import { auth } from '../firebase/firebase';
+
 
 const AdminDashboard = () => {
   const [students, setStudents] = useState([]);
@@ -20,7 +22,22 @@ const AdminDashboard = () => {
 
   return (
     <div style={{ padding: '20px' }}>
-      <h2>Admin Dashboard</h2>
+   <h2>Admin Dashboard</h2>
+<button
+  onClick={() => auth.signOut()}
+  style={{
+    marginBottom: '1rem',
+    padding: '0.5rem 1rem',
+    background: '#dc3545',
+    color: '#fff',
+    border: 'none',
+    borderRadius: '4px',
+  }}
+>
+  Sign Out
+</button>
+
+
       {students.length === 0 ? (
         <p>No signups yet.</p>
       ) : (
