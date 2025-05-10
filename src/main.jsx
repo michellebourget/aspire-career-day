@@ -1,8 +1,9 @@
 import React, { useEffect, useState } from 'react';
 import ReactDOM from 'react-dom/client';
-import { BrowserRouter, Routes, Route, Navigate, useNavigate } from 'react-router-dom';
+import { BrowserRouter, Routes, Route, useNavigate } from 'react-router-dom';
 import App from './App';
 import AdminDashboard from './components/AdminDashboard';
+import TeacherDashboard from './components/TeacherDashboard';
 import ProtectedRoute from './components/ProtectedRoute';
 import { auth } from './firebase/firebase';
 import { db } from './firebase/firebase';
@@ -27,7 +28,7 @@ const RoutesWithAuth = () => {
           const userRole = userData.role;
           setRole(userRole);
 
-          // Redirect based on role
+          // Redirect to correct dashboard
           if (userRole === 'admin') {
             navigate('/admin');
           } else if (userRole === 'teacher') {
@@ -61,18 +62,14 @@ const RoutesWithAuth = () => {
           </ProtectedRoute>
         }
       />
-import TeacherDashboard from './components/TeacherDashboard'; // Add this at the top with your other imports
-
-<Route
-  path="/teacher"
-  element={
-    <ProtectedRoute user={user} role={role} requiredRole="teacher">
-      <TeacherDashboard user={user} />
-    </ProtectedRoute>
-  }
-/>
-
-
+      <Route
+        path="/teacher"
+        element={
+          <ProtectedRoute user={user} role={role} requiredRole="teacher">
+            <TeacherDashboard user={user} />
+          </ProtectedRoute>
+        }
+      />
     </Routes>
   );
 };
