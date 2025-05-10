@@ -7,7 +7,7 @@ function App() {
     <main style={{ padding: '20px' }}>
       <LoginButton />
       <h1 style={{ fontSize: '24px', fontWeight: 'bold', marginBottom: '20px' }}>
-        Aspire Career Day
+        Welcome to Aspire Career Day
       </h1>
       <StudentSignupForm />
     </main>
