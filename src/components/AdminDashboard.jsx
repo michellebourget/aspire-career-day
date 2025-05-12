@@ -1,25 +1,29 @@
 import React, { useEffect, useState } from 'react';
-import { collection, getDocs } from 'firebase/firestore';
+import { collection, getDocs, updateDoc, doc } from 'firebase/firestore';
 import { db, auth } from '../firebase/firebase';
 
 const AdminDashboard = () => {
   const [students, setStudents] = useState([]);
   const [sessions, setSessions] = useState([]);
   const [attendanceRecords, setAttendanceRecords] = useState([]);
+  const [users, setUsers] = useState([]);
+  const [roleUpdates, setRoleUpdates] = useState({});
   const [loading, setLoading] = useState(true);
 
   useEffect(() => {
     const fetchData = async () => {
       try {
-        const [signupsSnap, sessionsSnap, attendanceSnap] = await Promise.all([
+        const [signupsSnap, sessionsSnap, attendanceSnap, usersSnap] = await Promise.all([
           getDocs(collection(db, 'signups')),
           getDocs(collection(db, 'sessions')),
           getDocs(collection(db, 'attendance')),
+          getDocs(collection(db, 'users')),
         ]);
 
         setStudents(signupsSnap.docs.map(doc => ({ id: doc.id, ...doc.data() })));
         setSessions(sessionsSnap.docs.map(doc => ({ id: doc.id, ...doc.data() })));
         setAttendanceRecords(attendanceSnap.docs.map(doc => ({ id: doc.id, ...doc.data() })));
+        setUsers(usersSnap.docs.map(doc => ({ id: doc.id, ...doc.data() })));
       } catch (error) {
         console.error('Error loading admin data:', error);
       } finally {
@@ -48,6 +52,23 @@ const AdminDashboard = () => {
     document.body.appendChild(link);
     link.click();
     document.body.removeChild(link);
+  };
+
+  const handleRoleChange = (userId, newRole) => {
+    setRoleUpdates(prev => ({ ...prev, [userId]: newRole }));
+  };
+
+  const handleUpdateRole = async (userId) => {
+    const newRole = roleUpdates[userId];
+    if (!newRole) return;
+    try {
+      await updateDoc(doc(db, 'users', userId), { role: newRole });
+      setUsers(prev => prev.map(u => u.id === userId ? { ...u, role: newRole } : u));
+      alert('Role updated successfully.');
+    } catch (err) {
+      console.error('Error updating role:', err);
+      alert('Failed to update role.');
+    }
   };
 
   if (loading) return <div style={{ padding: '20px' }}>Loading Admin Dashboard...</div>;
@@ -125,7 +146,7 @@ const AdminDashboard = () => {
       </div>
 
       {/* Attendance Records */}
-      <div>
+      <div style={{ marginBottom: '2rem' }}>
         <h3>Attendance Records</h3>
         {sessions.map(session => {
           const records = attendanceRecords.filter(r => r.sessionId === session.id);
@@ -150,6 +171,50 @@ const AdminDashboard = () => {
             </div>
           );
         })}
+      </div>
+
+      {/* User Role Management */}
+      <div>
+        <h3>User Role Management</h3>
+        {users.length === 0 ? <p>No users found.</p> : (
+          <table style={{ width: '100%', borderCollapse: 'collapse' }}>
+            <thead>
+              <tr>
+                <th style={{ textAlign: 'left', padding: '8px', borderBottom: '1px solid #ccc' }}>Email</th>
+                <th style={{ textAlign: 'left', padding: '8px', borderBottom: '1px solid #ccc' }}>Current Role</th>
+                <th style={{ textAlign: 'left', padding: '8px', borderBottom: '1px solid #ccc' }}>Change Role</th>
+                <th></th>
+              </tr>
+            </thead>
+            <tbody>
+              {users.map(user => (
+                <tr key={user.id}>
+                  <td style={{ padding: '8px' }}>{user.email}</td>
+                  <td style={{ padding: '8px' }}>{user.role || 'N/A'}</td>
+                  <td style={{ padding: '8px' }}>
+                    <select
+                      value={roleUpdates[user.id] || user.role || ''}
+                      onChange={(e) => handleRoleChange(user.id, e.target.value)}
+                    >
+                      <option value="">Select</option>
+                      <option value="student">Student</option>
+                      <option value="teacher">Teacher</option>
+                      <option value="admin">Admin</option>
+                    </select>
+                  </td>
+                  <td style={{ padding: '8px' }}>
+                    <button
+                      onClick={() => handleUpdateRole(user.id)}
+                      style={{ padding: '0.3rem 0.6rem', background: '#28a745', color: 'white', border: 'none', borderRadius: '4px' }}
+                    >
+                      Update
+                    </button>
+                  </td>
+                </tr>
+              ))}
+            </tbody>
+          </table>
+        )}
       </div>
     </div>
   );
