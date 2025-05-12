@@ -1,6 +1,6 @@
 import React, { useEffect, useState } from 'react';
 import { collection, getDocs, query, where } from 'firebase/firestore';
-import { db } from '../firebase/firebase';
+import { db, auth } from '../firebase/firebase';
 
 const TeacherDashboard = ({ user }) => {
   const [sessions, setSessions] = useState([]);
@@ -12,19 +12,25 @@ const TeacherDashboard = ({ user }) => {
       if (!user?.email) return;
 
       try {
+        // Step 1: Get this teacher’s sessions
         const q = query(
           collection(db, 'sessions'),
           where('teacherEmail', '==', user.email)
         );
-        const snapshot = await getDocs(q);
-        const sessionData = snapshot.docs.map(doc => ({
+        const sessionSnapshot = await getDocs(q);
+        const sessionData = sessionSnapshot.docs.map(doc => ({
           id: doc.id,
           ...doc.data()
         }));
         setSessions(sessionData);
-        setLoading(false);
+
+        // Step 2: Get all student signups
+        const signupSnapshot = await getDocs(collection(db, 'signups'));
+        const signupData = signupSnapshot.docs.map(doc => doc.data());
+        setSignups(signupData);
       } catch (err) {
         console.error('Firestore fetch error:', err);
+      } finally {
         setLoading(false);
       }
     };
@@ -39,17 +45,41 @@ const TeacherDashboard = ({ user }) => {
       <h2>Teacher Dashboard</h2>
       <p>Signed in as: {user.email}</p>
 
+      <button
+        onClick={() => auth.signOut()}
+        style={{
+          marginTop: '1rem',
+          padding: '0.5rem 1rem',
+          background: '#dc3545',
+          color: '#fff',
+          border: 'none',
+          borderRadius: '4px',
+        }}
+      >
+        Sign Out
+      </button>
+
       {sessions.length === 0 ? (
-        <p>No sessions found for this teacher.</p>
+        <p style={{ marginTop: '2rem' }}>You don’t have any assigned sessions.</p>
       ) : (
-        <ul>
-          {sessions.map(session => (
-            <li key={session.id}>{session.name}</li>
-          ))}
-        </ul>
+        sessions.map(session => (
+          <div key={session.id} style={{ marginTop: '2rem' }}>
+            <h3>{session.name}</h3>
+            <ul>
+              {signups
+                .filter(s => s.sessions?.includes(session.name))
+                .map((s, i) => (
+                  <li key={i}>
+                    {s.name} — {s.email}
+                  </li>
+                ))}
+            </ul>
+          </div>
+        ))
       )}
     </div>
   );
 };
 
 export default TeacherDashboard;
+
