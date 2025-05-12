@@ -21,10 +21,10 @@ const TeacherDashboard = ({ user }) => {
 
   useEffect(() => {
     const fetchData = async () => {
-      if (!user?.email) return;
+      if (!user || !user.email) return;
 
       try {
-        // Step 1: Get teacher's sessions
+        // Step 1: Fetch sessions
         const q = query(
           collection(db, 'sessions'),
           where('teacherEmail', '==', user.email)
@@ -36,12 +36,12 @@ const TeacherDashboard = ({ user }) => {
         }));
         setSessions(sessionData);
 
-        // Step 2: Get student signups
+        // Step 2: Fetch signups
         const signupSnapshot = await getDocs(collection(db, 'signups'));
         const signupData = signupSnapshot.docs.map(doc => doc.data());
         setSignups(signupData);
 
-        // ✅ Step 3: Get previously saved attendance
+        // Step 3: Fetch previously saved attendance
         const attendanceSnapshot = await getDocs(collection(db, 'attendance'));
         const attendanceData = {};
 
@@ -54,6 +54,7 @@ const TeacherDashboard = ({ user }) => {
         });
 
         setAttendance(attendanceData);
+        console.log("Loaded attendance from Firestore:", attendanceData);
 
       } catch (err) {
         console.error('Firestore fetch error:', err);
@@ -62,7 +63,9 @@ const TeacherDashboard = ({ user }) => {
       }
     };
 
-    fetchData();
+    if (user && user.email) {
+      fetchData();
+    }
   }, [user]);
 
   const handleAttendanceChange = (sessionId, studentEmail) => {
