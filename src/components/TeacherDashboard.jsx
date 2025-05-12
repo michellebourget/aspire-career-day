@@ -17,6 +17,7 @@ const TeacherDashboard = ({ user }) => {
   const [signups, setSignups] = useState([]);
   const [loading, setLoading] = useState(true);
   const [attendance, setAttendance] = useState({});
+  const [submittedSessions, setSubmittedSessions] = useState({});
   const navigate = useNavigate();
 
   useEffect(() => {
@@ -107,6 +108,13 @@ const TeacherDashboard = ({ user }) => {
 
       await Promise.all(writes);
       console.log(`✅ Attendance for ${sessionId} saved.`);
+
+      // ✅ Show thank you message
+      setSubmittedSessions(prev => ({
+        ...prev,
+        [sessionId]: true
+      }));
+
     } catch (error) {
       console.error('❌ Error saving attendance:', error);
     }
@@ -194,6 +202,11 @@ const TeacherDashboard = ({ user }) => {
               >
                 Submit Attendance
               </button>
+              {submittedSessions[session.id] && (
+                <p style={{ color: 'green', marginTop: '0.5rem' }}>
+                  ✅ Thank you for submitting attendance.
+                </p>
+              )}
             </div>
           );
         })
