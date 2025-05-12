@@ -48,7 +48,6 @@ const TeacherDashboard = ({ user }) => {
     fetchData();
   }, [user]);
 
-  // Handle checkbox toggle
   const handleAttendanceChange = (sessionId, studentEmail) => {
     setAttendance(prev => {
       const sessionAttendance = prev[sessionId] || {};
@@ -62,13 +61,12 @@ const TeacherDashboard = ({ user }) => {
     });
   };
 
-  // Submit attendance to Firestore
   const handleSubmitAttendance = async (sessionId) => {
     const sessionAttendance = attendance[sessionId] || {};
     console.log("Submitting attendance for session:", sessionId);
-  
+    console.log("Data to write:", sessionAttendance);
+
     try {
-      // Delete existing attendance records for this session
       const q = query(
         collection(db, 'attendance'),
         where('sessionId', '==', sessionId)
@@ -76,10 +74,9 @@ const TeacherDashboard = ({ user }) => {
       const snapshot = await getDocs(q);
       const deletions = snapshot.docs.map(doc => deleteDoc(doc.ref));
       await Promise.all(deletions);
-  
-      // Add new attendance records
+
       const writes = Object.entries(sessionAttendance).map(([email, present]) => {
-        console.log("Saving to Firestore:", { sessionId, email, present }); // <== Add this line
+        console.log("Saving to Firestore:", { sessionId, email, present });
         return addDoc(collection(db, 'attendance'), {
           sessionId,
           studentEmail: email,
@@ -87,15 +84,23 @@ const TeacherDashboard = ({ user }) => {
           timestamp: new Date()
         });
       });
-  
+
       await Promise.all(writes);
       console.log(`✅ Attendance for ${sessionId} saved.`);
     } catch (error) {
       console.error('❌ Error saving attendance:', error);
     }
   };
-  
 
+  const handleSignOut = async () => {
+    try {
+      console.log("Signing out...");
+      await auth.signOut();
+      window.location.reload(); // optional: force refresh after sign-out
+    } catch (err) {
+      console.error("Error signing out:", err);
+    }
+  };
 
   if (loading) return <div>Loading...</div>;
 
@@ -105,7 +110,7 @@ const TeacherDashboard = ({ user }) => {
       <p>Signed in as: {user.email}</p>
 
       <button
-        onClick={() => auth.signOut()}
+        onClick={handleSignOut}
         style={{
           marginTop: '1rem',
           padding: '0.5rem 1rem',
