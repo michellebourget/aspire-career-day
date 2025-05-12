@@ -66,7 +66,7 @@ const TeacherDashboard = ({ user }) => {
   const handleSubmitAttendance = async (sessionId) => {
     const sessionAttendance = attendance[sessionId] || {};
     console.log("Submitting attendance for session:", sessionId);
-
+  
     try {
       // Delete existing attendance records for this session
       const q = query(
@@ -76,23 +76,26 @@ const TeacherDashboard = ({ user }) => {
       const snapshot = await getDocs(q);
       const deletions = snapshot.docs.map(doc => deleteDoc(doc.ref));
       await Promise.all(deletions);
-
+  
       // Add new attendance records
-      const writes = Object.entries(sessionAttendance).map(([email, present]) =>
-        addDoc(collection(db, 'attendance'), {
+      const writes = Object.entries(sessionAttendance).map(([email, present]) => {
+        console.log("Saving to Firestore:", { sessionId, email, present }); // <== Add this line
+        return addDoc(collection(db, 'attendance'), {
           sessionId,
           studentEmail: email,
           present,
           timestamp: new Date()
-        })
-      );
-
+        });
+      });
+  
       await Promise.all(writes);
-      console.log(`Attendance for ${sessionId} saved.`);
+      console.log(`✅ Attendance for ${sessionId} saved.`);
     } catch (error) {
-      console.error('Error saving attendance:', error);
+      console.error('❌ Error saving attendance:', error);
     }
   };
+  
+
 
   if (loading) return <div>Loading...</div>;
 
