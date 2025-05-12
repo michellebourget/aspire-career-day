@@ -24,6 +24,7 @@ const TeacherDashboard = ({ user }) => {
       if (!user?.email) return;
 
       try {
+        // Step 1: Get teacher's sessions
         const q = query(
           collection(db, 'sessions'),
           where('teacherEmail', '==', user.email)
@@ -35,9 +36,25 @@ const TeacherDashboard = ({ user }) => {
         }));
         setSessions(sessionData);
 
+        // Step 2: Get student signups
         const signupSnapshot = await getDocs(collection(db, 'signups'));
         const signupData = signupSnapshot.docs.map(doc => doc.data());
         setSignups(signupData);
+
+        // ✅ Step 3: Get previously saved attendance
+        const attendanceSnapshot = await getDocs(collection(db, 'attendance'));
+        const attendanceData = {};
+
+        attendanceSnapshot.forEach(doc => {
+          const record = doc.data();
+          if (!attendanceData[record.sessionId]) {
+            attendanceData[record.sessionId] = {};
+          }
+          attendanceData[record.sessionId][record.studentEmail] = record.present;
+        });
+
+        setAttendance(attendanceData);
+
       } catch (err) {
         console.error('Firestore fetch error:', err);
       } finally {
@@ -96,7 +113,7 @@ const TeacherDashboard = ({ user }) => {
     try {
       console.log("Signing out...");
       await auth.signOut();
-      navigate('/'); // Redirect to login or landing page
+      navigate('/');
     } catch (err) {
       console.error("Error signing out:", err);
     }
