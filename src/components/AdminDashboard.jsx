@@ -5,38 +5,52 @@ import { db, auth } from '../firebase/firebase';
 const AdminDashboard = () => {
   const [students, setStudents] = useState([]);
   const [sessions, setSessions] = useState([]);
-  const [loadingSessions, setLoadingSessions] = useState(true);
-  const [loadingSignups, setLoadingSignups] = useState(true);
+  const [attendanceRecords, setAttendanceRecords] = useState([]);
+  const [loading, setLoading] = useState(true);
 
   useEffect(() => {
-    const fetchSignups = async () => {
-      const snapshot = await getDocs(collection(db, 'signups'));
-      const data = snapshot.docs.map((doc) => ({
-        id: doc.id,
-        ...doc.data(),
-      }));
-      setStudents(data);
-      setLoadingSignups(false);
-    };
-
-    const fetchSessions = async () => {
+    const fetchData = async () => {
       try {
-        const snapshot = await getDocs(collection(db, 'sessions'));
-        const sessionData = snapshot.docs.map(doc => ({
-          id: doc.id,
-          ...doc.data()
-        }));
-        setSessions(sessionData);
+        const [signupsSnap, sessionsSnap, attendanceSnap] = await Promise.all([
+          getDocs(collection(db, 'signups')),
+          getDocs(collection(db, 'sessions')),
+          getDocs(collection(db, 'attendance')),
+        ]);
+
+        setStudents(signupsSnap.docs.map(doc => ({ id: doc.id, ...doc.data() })));
+        setSessions(sessionsSnap.docs.map(doc => ({ id: doc.id, ...doc.data() })));
+        setAttendanceRecords(attendanceSnap.docs.map(doc => ({ id: doc.id, ...doc.data() })));
       } catch (error) {
-        console.error('Error fetching sessions:', error);
+        console.error('Error loading admin data:', error);
       } finally {
-        setLoadingSessions(false);
+        setLoading(false);
       }
     };
 
-    fetchSignups();
-    fetchSessions();
+    fetchData();
   }, []);
+
+  const exportToCSV = (sessionId, sessionName) => {
+    const rows = attendanceRecords
+      .filter(record => record.sessionId === sessionId)
+      .map(record => [record.studentEmail, record.present ? 'Present' : 'Absent']);
+
+    const csvContent = [
+      ['Student Email', 'Present'].join(','),
+      ...rows.map(r => r.join(','))
+    ].join('\n');
+
+    const blob = new Blob([csvContent], { type: 'text/csv;charset=utf-8;' });
+    const url = URL.createObjectURL(blob);
+    const link = document.createElement('a');
+    link.href = url;
+    link.setAttribute('download', `${sessionName}-attendance.csv`);
+    document.body.appendChild(link);
+    link.click();
+    document.body.removeChild(link);
+  };
+
+  if (loading) return <div style={{ padding: '20px' }}>Loading Admin Dashboard...</div>;
 
   return (
     <div style={{ padding: '20px' }}>
@@ -56,14 +70,10 @@ const AdminDashboard = () => {
         Sign Out
       </button>
 
-      {/* --- Student Signups --- */}
+      {/* Student Signups */}
       <div style={{ marginBottom: '2rem' }}>
         <h3>All Student Signups</h3>
-        {loadingSignups ? (
-          <p>Loading signups...</p>
-        ) : students.length === 0 ? (
-          <p>No signups yet.</p>
-        ) : (
+        {students.length === 0 ? <p>No signups yet.</p> : (
           <ul style={{ listStyle: 'none', paddingLeft: 0 }}>
             {students.map((student) => (
               <li key={student.id} style={{ marginBottom: '1.5rem' }}>
@@ -81,80 +91,65 @@ const AdminDashboard = () => {
         )}
       </div>
 
-      {/* --- Sessions View --- */}
+      {/* Sessions View */}
       <div style={{ marginBottom: '2rem' }}>
         <h3>All Sessions</h3>
-        {loadingSessions ? (
-          <p>Loading sessions...</p>
-        ) : sessions.length === 0 ? (
-          <p>No sessions available.</p>
-        ) : (
-          <div>
-            {sessions.map(session => (
-              <div
-                key={session.id}
-                style={{
-                  border: '1px solid #ccc',
-                  borderRadius: '8px',
-                  padding: '16px',
-                  marginBottom: '12px',
-                  background: '#f9f9f9'
-                }}
-              >
-                <h4>{session.name}</h4>
-                <p><strong>Teacher:</strong> {session.teacherEmail}</p>
-                <p>{session.description}</p>
-                {session.imageUrl && (
-                  <img
-                    src={session.imageUrl}
-                    alt={`${session.name} session`}
-                    style={{ maxWidth: '150px', height: 'auto', marginTop: '8px' }}
-                  />
-                )}
-              </div>
-            ))}
-          </div>
+        {sessions.length === 0 ? <p>No sessions available.</p> : (
+          sessions.map(session => (
+            <div key={session.id} style={{ border: '1px solid #ccc', borderRadius: '8px', padding: '16px', marginBottom: '12px', background: '#f9f9f9' }}>
+              <h4>{session.name}</h4>
+              <p><strong>Teacher:</strong> {session.teacherEmail}</p>
+              <p>{session.description}</p>
+              {session.imageUrl && <img src={session.imageUrl} alt={session.name} style={{ maxWidth: '150px' }} />}
+            </div>
+          ))
         )}
       </div>
 
-      {/* --- Signups Per Session --- */}
+      {/* Signups per Session */}
       <div style={{ marginBottom: '2rem' }}>
         <h3>Signups Per Session</h3>
-        {loadingSessions || loadingSignups ? (
-          <p>Loading data...</p>
-        ) : sessions.length === 0 ? (
-          <p>No sessions available.</p>
-        ) : (
-          sessions.map(session => {
-            const signedUpStudents = students.filter(student =>
-              student.sessions?.includes(session.name)
-            );
+        {sessions.map(session => {
+          const signedUp = students.filter(s => s.sessions?.includes(session.name));
+          return (
+            <div key={session.id} style={{ borderTop: '2px solid #007bff', marginTop: '1rem', paddingTop: '1rem' }}>
+              <h4>{session.name}</h4>
+              {signedUp.length === 0 ? <p>No students signed up.</p> : (
+                <ul>
+                  {signedUp.map(s => <li key={s.email}>{s.name} — {s.email}</li>)}
+                </ul>
+              )}
+            </div>
+          );
+        })}
+      </div>
 
-            return (
-              <div
-                key={session.id}
-                style={{
-                  borderTop: '2px solid #007bff',
-                  marginTop: '1rem',
-                  paddingTop: '1rem'
-                }}
-              >
-                <h4>{session.name}</h4>
-                {signedUpStudents.length === 0 ? (
-                  <p>No students signed up for this session.</p>
-                ) : (
-                  <ul style={{ paddingLeft: '1rem' }}>
-                    {signedUpStudents.map(student => (
-                      <li key={student.email}>
-                        {student.name} — {student.email}
-                      </li>
+      {/* Attendance Records */}
+      <div>
+        <h3>Attendance Records</h3>
+        {sessions.map(session => {
+          const records = attendanceRecords.filter(r => r.sessionId === session.id);
+          return (
+            <div key={session.id} style={{ borderTop: '2px solid green', marginTop: '1rem', paddingTop: '1rem' }}>
+              <h4>{session.name}</h4>
+              {records.length === 0 ? <p>No attendance recorded.</p> : (
+                <>
+                  <ul>
+                    {records.map((r, i) => (
+                      <li key={i}>{r.studentEmail} — {r.present ? '✅ Present' : '❌ Absent'}</li>
                     ))}
                   </ul>
-                )}
-              </div>
-            );
-          })
-        )}
+                  <button
+                    onClick={() => exportToCSV(session.id, session.name)}
+                    style={{ marginTop: '0.5rem', padding: '0.4rem 0.8rem', background: '#007bff', color: 'white', border: 'none', borderRadius: '4px' }}
+                  >
+                    Download CSV
+                  </button>
+                </>
+              )}
+            </div>
+          );
+        })}
       </div>
     </div>
   );
