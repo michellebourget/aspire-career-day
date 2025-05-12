@@ -1,7 +1,14 @@
 // src/components/TeacherDashboard.jsx
 
 import React, { useEffect, useState } from 'react';
-import { collection, getDocs, query, where } from 'firebase/firestore';
+import {
+  collection,
+  getDocs,
+  query,
+  where,
+  addDoc,
+  deleteDoc
+} from 'firebase/firestore';
 import { db, auth } from '../firebase/firebase';
 
 const TeacherDashboard = ({ user }) => {
@@ -41,7 +48,7 @@ const TeacherDashboard = ({ user }) => {
     fetchData();
   }, [user]);
 
-  // Handle attendance checkbox changes
+  // Handle checkbox toggle
   const handleAttendanceChange = (sessionId, studentEmail) => {
     setAttendance(prev => {
       const sessionAttendance = prev[sessionId] || {};
@@ -55,15 +62,36 @@ const TeacherDashboard = ({ user }) => {
     });
   };
 
-  // Optional: Submit attendance data
-  const handleSubmitAttendance = (sessionId) => {
+  // Submit attendance to Firestore
+  const handleSubmitAttendance = async (sessionId) => {
     const sessionAttendance = attendance[sessionId] || {};
-    const presentStudents = Object.entries(sessionAttendance)
-      .filter(([_, isPresent]) => isPresent)
-      .map(([email]) => email);
+    console.log("Submitting attendance for session:", sessionId);
 
-    console.log(`Attendance for session ${sessionId}:`, presentStudents);
-    // TODO: Send this data to your backend or Firestore
+    try {
+      // Delete existing attendance records for this session
+      const q = query(
+        collection(db, 'attendance'),
+        where('sessionId', '==', sessionId)
+      );
+      const snapshot = await getDocs(q);
+      const deletions = snapshot.docs.map(doc => deleteDoc(doc.ref));
+      await Promise.all(deletions);
+
+      // Add new attendance records
+      const writes = Object.entries(sessionAttendance).map(([email, present]) =>
+        addDoc(collection(db, 'attendance'), {
+          sessionId,
+          studentEmail: email,
+          present,
+          timestamp: new Date()
+        })
+      );
+
+      await Promise.all(writes);
+      console.log(`Attendance for ${sessionId} saved.`);
+    } catch (error) {
+      console.error('Error saving attendance:', error);
+    }
   };
 
   if (loading) return <div>Loading...</div>;
