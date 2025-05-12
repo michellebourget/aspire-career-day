@@ -109,11 +109,18 @@ const TeacherDashboard = ({ user }) => {
       await Promise.all(writes);
       console.log(`✅ Attendance for ${sessionId} saved.`);
 
-      // ✅ Show thank you message
+      // ✅ Show and auto-hide thank you message
       setSubmittedSessions(prev => ({
         ...prev,
         [sessionId]: true
       }));
+
+      setTimeout(() => {
+        setSubmittedSessions(prev => ({
+          ...prev,
+          [sessionId]: false
+        }));
+      }, 3000);
 
     } catch (error) {
       console.error('❌ Error saving attendance:', error);
