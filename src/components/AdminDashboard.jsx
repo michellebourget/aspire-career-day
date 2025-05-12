@@ -6,9 +6,9 @@ const AdminDashboard = () => {
   const [students, setStudents] = useState([]);
   const [sessions, setSessions] = useState([]);
   const [loadingSessions, setLoadingSessions] = useState(true);
+  const [loadingSignups, setLoadingSignups] = useState(true);
 
   useEffect(() => {
-    // Fetch student signups
     const fetchSignups = async () => {
       const snapshot = await getDocs(collection(db, 'signups'));
       const data = snapshot.docs.map((doc) => ({
@@ -16,9 +16,9 @@ const AdminDashboard = () => {
         ...doc.data(),
       }));
       setStudents(data);
+      setLoadingSignups(false);
     };
 
-    // Fetch all sessions
     const fetchSessions = async () => {
       try {
         const snapshot = await getDocs(collection(db, 'sessions'));
@@ -59,7 +59,9 @@ const AdminDashboard = () => {
       {/* --- Student Signups --- */}
       <div style={{ marginBottom: '2rem' }}>
         <h3>All Student Signups</h3>
-        {students.length === 0 ? (
+        {loadingSignups ? (
+          <p>Loading signups...</p>
+        ) : students.length === 0 ? (
           <p>No signups yet.</p>
         ) : (
           <ul style={{ listStyle: 'none', paddingLeft: 0 }}>
@@ -80,7 +82,7 @@ const AdminDashboard = () => {
       </div>
 
       {/* --- Sessions View --- */}
-      <div>
+      <div style={{ marginBottom: '2rem' }}>
         <h3>All Sessions</h3>
         {loadingSessions ? (
           <p>Loading sessions...</p>
@@ -112,6 +114,46 @@ const AdminDashboard = () => {
               </div>
             ))}
           </div>
+        )}
+      </div>
+
+      {/* --- Signups Per Session --- */}
+      <div style={{ marginBottom: '2rem' }}>
+        <h3>Signups Per Session</h3>
+        {loadingSessions || loadingSignups ? (
+          <p>Loading data...</p>
+        ) : sessions.length === 0 ? (
+          <p>No sessions available.</p>
+        ) : (
+          sessions.map(session => {
+            const signedUpStudents = students.filter(student =>
+              student.sessions?.includes(session.name)
+            );
+
+            return (
+              <div
+                key={session.id}
+                style={{
+                  borderTop: '2px solid #007bff',
+                  marginTop: '1rem',
+                  paddingTop: '1rem'
+                }}
+              >
+                <h4>{session.name}</h4>
+                {signedUpStudents.length === 0 ? (
+                  <p>No students signed up for this session.</p>
+                ) : (
+                  <ul style={{ paddingLeft: '1rem' }}>
+                    {signedUpStudents.map(student => (
+                      <li key={student.email}>
+                        {student.name} — {student.email}
+                      </li>
+                    ))}
+                  </ul>
+                )}
+              </div>
+            );
+          })
         )}
       </div>
     </div>
