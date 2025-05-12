@@ -71,7 +71,8 @@ const RoutesWithAuth = () => {
 
 ReactDOM.createRoot(document.getElementById('root')).render(
   <React.StrictMode>
-    <TeacherDashboard user={{ email: michelle.bourget@gorhamschools.org }} />
+   <TeacherDashboard user={{ email: "michelle.bourget@gorhamschools.org" }} />
+
   </React.StrictMode>
 );
 
