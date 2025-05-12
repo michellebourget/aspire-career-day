@@ -10,19 +10,20 @@ import {
   deleteDoc
 } from 'firebase/firestore';
 import { db, auth } from '../firebase/firebase';
+import { useNavigate } from 'react-router-dom';
 
 const TeacherDashboard = ({ user }) => {
   const [sessions, setSessions] = useState([]);
   const [signups, setSignups] = useState([]);
   const [loading, setLoading] = useState(true);
   const [attendance, setAttendance] = useState({});
+  const navigate = useNavigate();
 
   useEffect(() => {
     const fetchData = async () => {
       if (!user?.email) return;
 
       try {
-        // Fetch sessions assigned to the teacher
         const q = query(
           collection(db, 'sessions'),
           where('teacherEmail', '==', user.email)
@@ -34,7 +35,6 @@ const TeacherDashboard = ({ user }) => {
         }));
         setSessions(sessionData);
 
-        // Fetch all student signups
         const signupSnapshot = await getDocs(collection(db, 'signups'));
         const signupData = signupSnapshot.docs.map(doc => doc.data());
         setSignups(signupData);
@@ -96,7 +96,7 @@ const TeacherDashboard = ({ user }) => {
     try {
       console.log("Signing out...");
       await auth.signOut();
-      window.location.reload(); // optional: force refresh after sign-out
+      navigate('/'); // Redirect to login or landing page
     } catch (err) {
       console.error("Error signing out:", err);
     }
