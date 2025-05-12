@@ -1,6 +1,7 @@
 import React, { useEffect, useState } from 'react';
 import { collection, getDocs } from 'firebase/firestore';
-import { db } from '../firebase';  // adjust the import path to your Firebase config
+import { db } from '../firebase/firebase';
+  // adjust the import path to your Firebase config
 
 const AdminDashboard = () => {
   // State for sessions data and loading status
