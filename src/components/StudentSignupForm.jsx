@@ -42,7 +42,7 @@ const StudentSignupForm = () => {
       });
 
       // Send to Google Sheets Webhook
-      await fetch('YOUR_WEBHOOK_URL_HERE', {
+      await fetch('https://script.google.com/macros/s/AKfycb.../exec', {
         method: 'POST',
         headers: {
           'Content-Type': 'application/json',
