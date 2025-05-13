@@ -2,7 +2,7 @@ import React, { useEffect, useState } from 'react';
 import { collection, getDocs, addDoc } from 'firebase/firestore';
 import { db } from '../firebase/firebase';
 
-const StudentSignup = () => {
+const StudentSignupForm = () => {
   const [sessions, setSessions] = useState([]);
   const [name, setName] = useState('');
   const [email, setEmail] = useState('');
@@ -34,11 +34,26 @@ const StudentSignup = () => {
     }
 
     try {
+      // Save to Firestore
       await addDoc(collection(db, 'signups'), {
         name,
         email,
         sessions: selectedSessions,
       });
+
+      // Send to Google Sheets Webhook
+      await fetch('YOUR_WEBHOOK_URL_HERE', {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+        },
+        body: JSON.stringify({
+          name,
+          email,
+          sessions: selectedSessions,
+        }),
+      });
+
       setSubmitted(true);
     } catch (err) {
       console.error('Error submitting signup:', err);
@@ -50,7 +65,7 @@ const StudentSignup = () => {
     return (
       <div style={{ padding: '20px' }}>
         <h2>Thank you for signing up!</h2>
-        <p>You'll receive a confirmation shortly.</p>
+        <p>You'll receive a confirmation email shortly.</p>
       </div>
     );
   }
@@ -110,4 +125,4 @@ const StudentSignup = () => {
   );
 };
 
-export default StudentSignup;
+export default StudentSignupForm;
