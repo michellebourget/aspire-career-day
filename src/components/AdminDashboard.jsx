@@ -1,5 +1,12 @@
 import React, { useEffect, useState } from 'react';
-import { collection, getDocs, updateDoc, doc, deleteDoc, addDoc } from 'firebase/firestore';
+import {
+  collection,
+  getDocs,
+  updateDoc,
+  doc,
+  deleteDoc,
+  addDoc
+} from 'firebase/firestore';
 import { db, auth } from '../firebase/firebase';
 
 const AdminDashboard = () => {
@@ -9,7 +16,12 @@ const AdminDashboard = () => {
   const [users, setUsers] = useState([]);
   const [roleUpdates, setRoleUpdates] = useState({});
   const [loading, setLoading] = useState(true);
-  const [newSession, setNewSession] = useState({ name: '', description: '', teacherEmail: '', imageUrl: '' });
+  const [newSession, setNewSession] = useState({
+    name: '',
+    description: '',
+    teacherEmail: '',
+    imageUrl: ''
+  });
   const [sessionEdits, setSessionEdits] = useState({});
 
   useEffect(() => {
@@ -21,7 +33,6 @@ const AdminDashboard = () => {
           getDocs(collection(db, 'attendance')),
           getDocs(collection(db, 'users')),
         ]);
-
         setStudents(signupsSnap.docs.map(doc => ({ id: doc.id, ...doc.data() })));
         setSessions(sessionsSnap.docs.map(doc => ({ id: doc.id, ...doc.data() })));
         setAttendanceRecords(attendanceSnap.docs.map(doc => ({ id: doc.id, ...doc.data() })));
@@ -32,7 +43,6 @@ const AdminDashboard = () => {
         setLoading(false);
       }
     };
-
     fetchData();
   }, []);
 
@@ -128,9 +138,6 @@ const AdminDashboard = () => {
         style={{ marginBottom: '1rem', padding: '0.5rem 1rem', background: '#dc3545', color: '#fff', border: 'none', borderRadius: '4px' }}
       >Sign Out</button>
 
-      {/* --- All previous sections remain unchanged --- */}
-
-      {/* --- Manage Sessions --- */}
       <div style={{ marginTop: '2rem' }}>
         <h3>Manage Sessions</h3>
 
@@ -149,8 +156,7 @@ const AdminDashboard = () => {
             <label>Name: <input value={sessionEdits[session.id]?.name ?? session.name} onChange={e => handleEditSessionChange(session.id, 'name', e.target.value)} /></label><br />
             <label>Teacher Email: <input value={sessionEdits[session.id]?.teacherEmail ?? session.teacherEmail} onChange={e => handleEditSessionChange(session.id, 'teacherEmail', e.target.value)} /></label><br />
             <label>Description: <input value={sessionEdits[session.id]?.description ?? session.description} onChange={e => handleEditSessionChange(session.id, 'description', e.target.value)} /></label><br />
-            <label>Image URL: <input value={sessionEdits[session.id]?.imageUrl ?? (session.imageUrl || '')}
- onChange={e => handleEditSessionChange(session.id, 'imageUrl', e.target.value)} /></label><br />
+            <label>Image URL: <input value={sessionEdits[session.id]?.imageUrl ?? (session.imageUrl || '')} onChange={e => handleEditSessionChange(session.id, 'imageUrl', e.target.value)} /></label><br />
             <button onClick={() => handleUpdateSession(session.id)} style={{ marginTop: '0.5rem', marginRight: '0.5rem' }}>Update</button>
             <button onClick={() => handleDeleteSession(session.id)} style={{ marginTop: '0.5rem', backgroundColor: '#dc3545', color: 'white' }}>Delete</button>
           </div>
