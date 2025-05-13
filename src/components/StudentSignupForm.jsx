@@ -1,110 +1,113 @@
-import React, { useState, useEffect } from 'react';
+import React, { useEffect, useState } from 'react';
 import { collection, getDocs, addDoc } from 'firebase/firestore';
 import { db } from '../firebase/firebase';
 
-const StudentSignupForm = () => {
+const StudentSignup = () => {
+  const [sessions, setSessions] = useState([]);
   const [name, setName] = useState('');
   const [email, setEmail] = useState('');
   const [selectedSessions, setSelectedSessions] = useState([]);
   const [submitted, setSubmitted] = useState(false);
-  const [sessions, setSessions] = useState([]);
 
-  // Fetch sessions from Firestore
   useEffect(() => {
     const fetchSessions = async () => {
       const snapshot = await getDocs(collection(db, 'sessions'));
-      const data = snapshot.docs.map((doc) => ({
-        id: doc.id,
-        ...doc.data()
-      }));
+      const data = snapshot.docs.map(doc => ({ id: doc.id, ...doc.data() }));
       setSessions(data);
     };
-
     fetchSessions();
   }, []);
 
-  const handleCheckboxChange = (sessionName) => {
+  const handleSelect = (sessionName) => {
     if (selectedSessions.includes(sessionName)) {
-      setSelectedSessions(selectedSessions.filter((s) => s !== sessionName));
-    } else if (selectedSessions.length < 3) {
-      setSelectedSessions([...selectedSessions, sessionName]);
+      setSelectedSessions(prev => prev.filter(s => s !== sessionName));
+    } else {
+      if (selectedSessions.length >= 3) return alert('You can only select 3 sessions.');
+      setSelectedSessions(prev => [...prev, sessionName]);
     }
   };
 
-  const handleSubmit = async (e) => {
-    e.preventDefault();
+  const handleSubmit = async () => {
+    if (!name || !email || selectedSessions.length === 0) {
+      alert('Please complete all fields and select at least one session.');
+      return;
+    }
 
     try {
       await addDoc(collection(db, 'signups'), {
         name,
         email,
         sessions: selectedSessions,
-        timestamp: new Date(),
       });
       setSubmitted(true);
-    } catch (error) {
-      console.error('Error saving to Firestore:', error);
-      alert('There was a problem saving your signup. Please try again.');
+    } catch (err) {
+      console.error('Error submitting signup:', err);
+      alert('Something went wrong. Please try again.');
     }
   };
 
-  return submitted ? (
-    <div style={{ color: 'green', fontWeight: 'bold' }}>
-      Thank you for signing up!
-    </div>
-  ) : (
-    <form onSubmit={handleSubmit} style={{ maxWidth: '500px' }}>
-      <div style={{ marginBottom: '1rem' }}>
-        <label>Name:</label><br />
-        <input
-          type="text"
-          value={name}
-          onChange={(e) => setName(e.target.value)}
-          required
-          style={{ padding: '0.5rem', width: '100%' }}
-        />
+  if (submitted) {
+    return (
+      <div style={{ padding: '20px' }}>
+        <h2>Thank you for signing up!</h2>
+        <p>You'll receive a confirmation shortly.</p>
       </div>
+    );
+  }
 
-      <div style={{ marginBottom: '1rem' }}>
-        <label>Email:</label><br />
-        <input
-          type="email"
-          value={email}
-          onChange={(e) => setEmail(e.target.value)}
-          required
-          style={{ padding: '0.5rem', width: '100%' }}
-        />
-      </div>
+  return (
+    <div style={{ padding: '20px' }}>
+      <h2>Student Session Signup</h2>
 
-      <div style={{ marginBottom: '1rem' }}>
-        <label>Choose up to 3 sessions:</label>
-        <ul style={{ listStyle: 'none', paddingLeft: 0 }}>
-          {sessions.map((session) => (
-            <li key={session.id}>
-              <label>
-                <input
-                  type="checkbox"
-                  value={session.name}
-                  checked={selectedSessions.includes(session.name)}
-                  onChange={() => handleCheckboxChange(session.name)}
-                  disabled={
-                    !selectedSessions.includes(session.name) &&
-                    selectedSessions.length >= 3
-                  }
-                />
-                {' '}
-                {session.name}
-              </label>
-            </li>
+      <input
+        placeholder="Your Name"
+        value={name}
+        onChange={e => setName(e.target.value)}
+        style={{ display: 'block', marginBottom: '10px' }}
+      />
+      <input
+        placeholder="Your Email"
+        value={email}
+        onChange={e => setEmail(e.target.value)}
+        style={{ display: 'block', marginBottom: '20px' }}
+      />
+
+      <h3>Select up to 3 sessions:</h3>
+      {sessions.length === 0 ? <p>Loading sessions...</p> : (
+        <div>
+          {sessions.map(session => (
+            <div
+              key={session.id}
+              style={{
+                border: '1px solid #ccc',
+                padding: '10px',
+                marginBottom: '10px',
+                background: selectedSessions.includes(session.name) ? '#e0ffe0' : '#fff'
+              }}
+            >
+              <h4>{session.name}</h4>
+              <p><strong>Teacher:</strong> {session.teacherEmail}</p>
+              {session.description && <p><em>{session.description}</em></p>}
+              {session.imageUrl && <img src={session.imageUrl} alt={session.name} style={{ maxWidth: '150px' }} />}
+              <button
+                onClick={() => handleSelect(session.name)}
+                style={{ marginTop: '5px' }}
+              >
+                {selectedSessions.includes(session.name) ? 'Remove' : 'Select'}
+              </button>
+            </div>
           ))}
-        </ul>
-      </div>
+        </div>
+      )}
 
-      <button type="submit" style={{ padding: '0.5rem 1rem', background: '#007bff', color: '#fff', border: 'none' }}>
+      <button
+        onClick={handleSubmit}
+        style={{ marginTop: '20px', padding: '0.5rem 1rem' }}
+      >
         Submit
       </button>
-    </form>
+    </div>
   );
 };
 
-export default StudentSignupForm;
+export default StudentSignup;
