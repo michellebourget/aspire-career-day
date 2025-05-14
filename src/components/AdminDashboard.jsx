@@ -69,6 +69,20 @@ const AdminDashboard = () => {
   return (
     <div style={{ padding: '20px' }}>
       <h2>Admin Dashboard</h2>
+      <button
+  onClick={() => auth.signOut()}
+  style={{
+    marginBottom: '1rem',
+    padding: '0.5rem 1rem',
+    background: '#dc3545',
+    color: '#fff',
+    border: 'none',
+    borderRadius: '4px',
+  }}
+>
+  Sign Out
+</button>
+
 
       <div style={{ marginTop: '2rem' }}>
         <h3>Manage Sessions</h3>
