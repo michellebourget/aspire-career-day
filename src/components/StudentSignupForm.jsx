@@ -1,5 +1,5 @@
 import React, { useEffect, useState } from 'react';
-import { collection, getDocs, addDoc } from 'firebase/firestore';
+import { collection, getDocs, addDoc, query, where, doc, updateDoc, getDoc } from 'firebase/firestore';
 import { db } from '../firebase/firebase';
 
 const StudentSignupForm = () => {
@@ -9,15 +9,27 @@ const StudentSignupForm = () => {
   const [email, setEmail] = useState('');
   const [selectedSessions, setSelectedSessions] = useState([]);
   const [submitted, setSubmitted] = useState(false);
+  const [signupDeadlinePassed, setSignupDeadlinePassed] = useState(false);
+  const [existingDocId, setExistingDocId] = useState(null);
 
   useEffect(() => {
     const fetchData = async () => {
       const sessionSnapshot = await getDocs(collection(db, 'sessions'));
       const signupSnapshot = await getDocs(collection(db, 'signups'));
-
       setSessions(sessionSnapshot.docs.map(doc => ({ id: doc.id, ...doc.data() })));
       setSignups(signupSnapshot.docs.map(doc => doc.data()));
+
+      // Fetch signup deadline
+      const deadlineDoc = await getDoc(doc(db, 'settings', 'signup'));
+      if (deadlineDoc.exists()) {
+        const deadline = deadlineDoc.data().deadline?.toDate();
+        const now = new Date();
+        if (deadline && now > deadline) {
+          setSignupDeadlinePassed(true);
+        }
+      }
     };
+
     fetchData();
   }, []);
 
@@ -39,29 +51,44 @@ const StudentSignupForm = () => {
     }
   };
 
+  const loadExistingSignup = async (email) => {
+    const q = query(collection(db, 'signups'), where('email', '==', email));
+    const snapshot = await getDocs(q);
+    if (!snapshot.empty) {
+      const docData = snapshot.docs[0].data();
+      setName(docData.name);
+      setSelectedSessions(docData.sessions);
+      setExistingDocId(snapshot.docs[0].id);
+    }
+  };
+
+  const handleEmailBlur = () => {
+    if (email) {
+      loadExistingSignup(email);
+    }
+  };
+
   const handleSubmit = async () => {
     if (!name || !email || selectedSessions.length === 0) {
       alert('Please complete all fields and select at least one session.');
       return;
     }
 
+    const signupData = { name, email, sessions: selectedSessions };
+
     try {
-      await addDoc(collection(db, 'signups'), {
-        name,
-        email,
-        sessions: selectedSessions,
-      });
+      if (existingDocId) {
+        await updateDoc(doc(db, 'signups', existingDocId), signupData);
+      } else {
+        await addDoc(collection(db, 'signups'), signupData);
+      }
 
       await fetch('/api/signup-proxy', {
         method: 'POST',
         headers: {
           'Content-Type': 'application/json',
         },
-        body: JSON.stringify({
-          name,
-          email,
-          sessions: selectedSessions,
-        }),
+        body: JSON.stringify(signupData),
       });
 
       setSubmitted(true);
@@ -70,6 +97,15 @@ const StudentSignupForm = () => {
       alert('Something went wrong. Please try again.');
     }
   };
+
+  if (signupDeadlinePassed) {
+    return (
+      <div style={{ padding: '20px' }}>
+        <h2>Sign-ups are now closed.</h2>
+        <p>The deadline to choose your sessions has passed.</p>
+      </div>
+    );
+  }
 
   if (submitted) {
     return (
@@ -94,6 +130,7 @@ const StudentSignupForm = () => {
         placeholder="Your Email"
         value={email}
         onChange={e => setEmail(e.target.value)}
+        onBlur={handleEmailBlur}
         style={{ display: 'block', marginBottom: '20px' }}
       />
 
