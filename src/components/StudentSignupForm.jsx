@@ -4,19 +4,31 @@ import { db } from '../firebase/firebase';
 
 const StudentSignupForm = () => {
   const [sessions, setSessions] = useState([]);
+  const [signups, setSignups] = useState([]);
   const [name, setName] = useState('');
   const [email, setEmail] = useState('');
   const [selectedSessions, setSelectedSessions] = useState([]);
   const [submitted, setSubmitted] = useState(false);
 
   useEffect(() => {
-    const fetchSessions = async () => {
-      const snapshot = await getDocs(collection(db, 'sessions'));
-      const data = snapshot.docs.map(doc => ({ id: doc.id, ...doc.data() }));
-      setSessions(data);
+    const fetchData = async () => {
+      const sessionSnapshot = await getDocs(collection(db, 'sessions'));
+      const signupSnapshot = await getDocs(collection(db, 'signups'));
+
+      setSessions(sessionSnapshot.docs.map(doc => ({ id: doc.id, ...doc.data() })));
+      setSignups(signupSnapshot.docs.map(doc => doc.data()));
     };
-    fetchSessions();
+    fetchData();
   }, []);
+
+  const getSignupCount = (sessionName) => {
+    return signups.filter(s => s.sessions?.includes(sessionName)).length;
+  };
+
+  const isSessionFull = (session) => {
+    const count = getSignupCount(session.name);
+    return session.capacity && count >= session.capacity;
+  };
 
   const handleSelect = (sessionName) => {
     if (selectedSessions.includes(sessionName)) {
@@ -34,14 +46,12 @@ const StudentSignupForm = () => {
     }
 
     try {
-      // Save to Firestore
       await addDoc(collection(db, 'signups'), {
         name,
         email,
         sessions: selectedSessions,
       });
 
-      // Send to your own backend (Vercel proxy will be implemented next)
       await fetch('/api/signup-proxy', {
         method: 'POST',
         headers: {
@@ -90,28 +100,37 @@ const StudentSignupForm = () => {
       <h3>Select up to 3 sessions:</h3>
       {sessions.length === 0 ? <p>Loading sessions...</p> : (
         <div>
-          {sessions.map(session => (
-            <div
-              key={session.id}
-              style={{
-                border: '1px solid #ccc',
-                padding: '10px',
-                marginBottom: '10px',
-                background: selectedSessions.includes(session.name) ? '#e0ffe0' : '#fff'
-              }}
-            >
-              <h4>{session.name}</h4>
-              <p><strong>Teacher:</strong> {session.teacherEmail}</p>
-              {session.description && <p><em>{session.description}</em></p>}
-              {session.imageUrl && <img src={session.imageUrl} alt={session.name} style={{ maxWidth: '150px' }} />}
-              <button
-                onClick={() => handleSelect(session.name)}
-                style={{ marginTop: '5px' }}
+          {sessions.map(session => {
+            const count = getSignupCount(session.name);
+            const full = isSessionFull(session);
+            return (
+              <div
+                key={session.id}
+                style={{
+                  border: '1px solid #ccc',
+                  padding: '10px',
+                  marginBottom: '10px',
+                  background: selectedSessions.includes(session.name) ? '#e0ffe0' : '#fff'
+                }}
               >
-                {selectedSessions.includes(session.name) ? 'Remove' : 'Select'}
-              </button>
-            </div>
-          ))}
+                <h4>{session.name}</h4>
+                <p><strong>Teacher:</strong> {session.teacherEmail}</p>
+                {session.description && <p><em>{session.description}</em></p>}
+                {session.imageUrl && <img src={session.imageUrl} alt={session.name} style={{ maxWidth: '150px' }} />}
+                <p><strong>Spots Filled:</strong> {count} / {session.capacity || '∞'}</p>
+                {full ? (
+                  <p style={{ color: 'red', fontWeight: 'bold' }}>Full</p>
+                ) : (
+                  <button
+                    onClick={() => handleSelect(session.name)}
+                    style={{ marginTop: '5px' }}
+                  >
+                    {selectedSessions.includes(session.name) ? 'Remove' : 'Select'}
+                  </button>
+                )}
+              </div>
+            );
+          })}
         </div>
       )}
 
