@@ -4,15 +4,20 @@ import { db, auth } from '../firebase/firebase';
 
 const AdminDashboard = () => {
   const [sessions, setSessions] = useState([]);
+  const [attendanceRecords, setAttendanceRecords] = useState([]);
   const [newSession, setNewSession] = useState({ name: '', description: '', teacherEmail: '', imageUrl: '', capacity: '' });
   const [sessionEdits, setSessionEdits] = useState({});
+  const [selectedFilter, setSelectedFilter] = useState('');
 
   useEffect(() => {
-    const fetchSessions = async () => {
-      const snapshot = await getDocs(collection(db, 'sessions'));
-      setSessions(snapshot.docs.map(doc => ({ id: doc.id, ...doc.data() })));
+    const fetchData = async () => {
+      const sessionsSnap = await getDocs(collection(db, 'sessions'));
+      const attendanceSnap = await getDocs(collection(db, 'attendance'));
+
+      setSessions(sessionsSnap.docs.map(doc => ({ id: doc.id, ...doc.data() })));
+      setAttendanceRecords(attendanceSnap.docs.map(doc => doc.data()));
     };
-    fetchSessions();
+    fetchData();
   }, []);
 
   const handleNewSessionChange = (e) => {
@@ -66,24 +71,25 @@ const AdminDashboard = () => {
     }
   };
 
+  const filteredAttendance = selectedFilter
+    ? attendanceRecords.filter(record => {
+        const session = sessions.find(s => s.id === record.sessionId);
+        return session && (session.name === selectedFilter || session.teacherEmail === selectedFilter);
+      })
+    : attendanceRecords;
+
   return (
     <div style={{ padding: '20px' }}>
       <h2>Admin Dashboard</h2>
+
       <button
-  onClick={() => auth.signOut()}
-  style={{
-    marginBottom: '1rem',
-    padding: '0.5rem 1rem',
-    background: '#dc3545',
-    color: '#fff',
-    border: 'none',
-    borderRadius: '4px',
-  }}
->
-  Sign Out
-</button>
+        onClick={() => auth.signOut()}
+        style={{ marginBottom: '1rem', padding: '0.5rem 1rem', background: '#dc3545', color: '#fff', border: 'none', borderRadius: '4px' }}
+      >
+        Sign Out
+      </button>
 
-
+      {/* --- Manage Sessions --- */}
       <div style={{ marginTop: '2rem' }}>
         <h3>Manage Sessions</h3>
 
@@ -110,8 +116,36 @@ const AdminDashboard = () => {
           </div>
         ))}
       </div>
+
+      {/* --- Attendance Viewer --- */}
+      <div style={{ marginTop: '3rem' }}>
+        <h3>View Attendance</h3>
+        <label>Filter by session or teacher: </label>
+        <select value={selectedFilter} onChange={e => setSelectedFilter(e.target.value)}>
+          <option value="">All</option>
+          {sessions.map(session => (
+            <React.Fragment key={session.id}>
+              <option value={session.name}>{session.name}</option>
+              <option value={session.teacherEmail}>{session.teacherEmail}</option>
+            </React.Fragment>
+          ))}
+        </select>
+
+        <ul style={{ marginTop: '1rem' }}>
+          {filteredAttendance.map((record, index) => {
+            const session = sessions.find(s => s.id === record.sessionId);
+            return (
+              <li key={index}>
+                <strong>{record.studentEmail}</strong> — {record.present ? '✅ Present' : '❌ Absent'}
+                {session && <span> ({session.name}, {session.teacherEmail})</span>}
+              </li>
+            );
+          })}
+        </ul>
+      </div>
     </div>
   );
 };
 
 export default AdminDashboard;
+
