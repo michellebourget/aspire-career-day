@@ -1,87 +1,19 @@
 import React, { useEffect, useState } from 'react';
-import {
-  collection,
-  getDocs,
-  updateDoc,
-  doc,
-  deleteDoc,
-  addDoc
-} from 'firebase/firestore';
+import { collection, getDocs, updateDoc, doc, deleteDoc, addDoc } from 'firebase/firestore';
 import { db, auth } from '../firebase/firebase';
 
 const AdminDashboard = () => {
-  const [students, setStudents] = useState([]);
   const [sessions, setSessions] = useState([]);
-  const [attendanceRecords, setAttendanceRecords] = useState([]);
-  const [users, setUsers] = useState([]);
-  const [roleUpdates, setRoleUpdates] = useState({});
-  const [loading, setLoading] = useState(true);
-  const [newSession, setNewSession] = useState({
-    name: '',
-    description: '',
-    teacherEmail: '',
-    imageUrl: ''
-  });
+  const [newSession, setNewSession] = useState({ name: '', description: '', teacherEmail: '', imageUrl: '', capacity: '' });
   const [sessionEdits, setSessionEdits] = useState({});
 
   useEffect(() => {
-    const fetchData = async () => {
-      try {
-        const [signupsSnap, sessionsSnap, attendanceSnap, usersSnap] = await Promise.all([
-          getDocs(collection(db, 'signups')),
-          getDocs(collection(db, 'sessions')),
-          getDocs(collection(db, 'attendance')),
-          getDocs(collection(db, 'users')),
-        ]);
-        setStudents(signupsSnap.docs.map(doc => ({ id: doc.id, ...doc.data() })));
-        setSessions(sessionsSnap.docs.map(doc => ({ id: doc.id, ...doc.data() })));
-        setAttendanceRecords(attendanceSnap.docs.map(doc => ({ id: doc.id, ...doc.data() })));
-        setUsers(usersSnap.docs.map(doc => ({ id: doc.id, ...doc.data() })));
-      } catch (error) {
-        console.error('Error loading admin data:', error);
-      } finally {
-        setLoading(false);
-      }
+    const fetchSessions = async () => {
+      const snapshot = await getDocs(collection(db, 'sessions'));
+      setSessions(snapshot.docs.map(doc => ({ id: doc.id, ...doc.data() })));
     };
-    fetchData();
+    fetchSessions();
   }, []);
-
-  const exportToCSV = (sessionId, sessionName) => {
-    const rows = attendanceRecords
-      .filter(record => record.sessionId === sessionId)
-      .map(record => [record.studentEmail, record.present ? 'Present' : 'Absent']);
-
-    const csvContent = [
-      ['Student Email', 'Present'].join(','),
-      ...rows.map(r => r.join(','))
-    ].join('\n');
-
-    const blob = new Blob([csvContent], { type: 'text/csv;charset=utf-8;' });
-    const url = URL.createObjectURL(blob);
-    const link = document.createElement('a');
-    link.href = url;
-    link.setAttribute('download', `${sessionName}-attendance.csv`);
-    document.body.appendChild(link);
-    link.click();
-    document.body.removeChild(link);
-  };
-
-  const handleRoleChange = (userId, newRole) => {
-    setRoleUpdates(prev => ({ ...prev, [userId]: newRole }));
-  };
-
-  const handleUpdateRole = async (userId) => {
-    const newRole = roleUpdates[userId];
-    if (!newRole) return;
-    try {
-      await updateDoc(doc(db, 'users', userId), { role: newRole });
-      setUsers(prev => prev.map(u => u.id === userId ? { ...u, role: newRole } : u));
-      alert('Role updated successfully.');
-    } catch (err) {
-      console.error('Error updating role:', err);
-      alert('Failed to update role.');
-    }
-  };
 
   const handleNewSessionChange = (e) => {
     const { name, value } = e.target;
@@ -91,9 +23,12 @@ const AdminDashboard = () => {
   const handleAddSession = async () => {
     if (!newSession.name || !newSession.teacherEmail) return alert('Name and Teacher Email required');
     try {
-      const docRef = await addDoc(collection(db, 'sessions'), newSession);
+      const docRef = await addDoc(collection(db, 'sessions'), {
+        ...newSession,
+        capacity: parseInt(newSession.capacity) || 0
+      });
       setSessions(prev => [...prev, { ...newSession, id: docRef.id }]);
-      setNewSession({ name: '', description: '', teacherEmail: '', imageUrl: '' });
+      setNewSession({ name: '', description: '', teacherEmail: '', imageUrl: '', capacity: '' });
     } catch (err) {
       console.error('Error adding session:', err);
     }
@@ -110,7 +45,10 @@ const AdminDashboard = () => {
     const updated = sessionEdits[sessionId];
     if (!updated) return;
     try {
-      await updateDoc(doc(db, 'sessions', sessionId), updated);
+      await updateDoc(doc(db, 'sessions', sessionId), {
+        ...updated,
+        capacity: parseInt(updated.capacity) || 0
+      });
       setSessions(prev => prev.map(s => s.id === sessionId ? { ...s, ...updated } : s));
       alert('Session updated.');
     } catch (err) {
@@ -128,15 +66,9 @@ const AdminDashboard = () => {
     }
   };
 
-  if (loading) return <div style={{ padding: '20px' }}>Loading Admin Dashboard...</div>;
-
   return (
     <div style={{ padding: '20px' }}>
       <h2>Admin Dashboard</h2>
-      <button
-        onClick={() => auth.signOut()}
-        style={{ marginBottom: '1rem', padding: '0.5rem 1rem', background: '#dc3545', color: '#fff', border: 'none', borderRadius: '4px' }}
-      >Sign Out</button>
 
       <div style={{ marginTop: '2rem' }}>
         <h3>Manage Sessions</h3>
@@ -147,6 +79,7 @@ const AdminDashboard = () => {
           <input name="teacherEmail" placeholder="Teacher Email" value={newSession.teacherEmail} onChange={handleNewSessionChange} /><br />
           <input name="description" placeholder="Description" value={newSession.description} onChange={handleNewSessionChange} /><br />
           <input name="imageUrl" placeholder="Image URL" value={newSession.imageUrl} onChange={handleNewSessionChange} /><br />
+          <input name="capacity" type="number" placeholder="Capacity" value={newSession.capacity} onChange={handleNewSessionChange} /><br />
           <button onClick={handleAddSession} style={{ marginTop: '0.5rem' }}>Add Session</button>
         </div>
 
@@ -157,6 +90,7 @@ const AdminDashboard = () => {
             <label>Teacher Email: <input value={sessionEdits[session.id]?.teacherEmail ?? session.teacherEmail} onChange={e => handleEditSessionChange(session.id, 'teacherEmail', e.target.value)} /></label><br />
             <label>Description: <input value={sessionEdits[session.id]?.description ?? session.description} onChange={e => handleEditSessionChange(session.id, 'description', e.target.value)} /></label><br />
             <label>Image URL: <input value={sessionEdits[session.id]?.imageUrl ?? (session.imageUrl || '')} onChange={e => handleEditSessionChange(session.id, 'imageUrl', e.target.value)} /></label><br />
+            <label>Capacity: <input type="number" value={sessionEdits[session.id]?.capacity ?? (session.capacity || 0)} onChange={e => handleEditSessionChange(session.id, 'capacity', e.target.value)} /></label><br />
             <button onClick={() => handleUpdateSession(session.id)} style={{ marginTop: '0.5rem', marginRight: '0.5rem' }}>Update</button>
             <button onClick={() => handleDeleteSession(session.id)} style={{ marginTop: '0.5rem', backgroundColor: '#dc3545', color: 'white' }}>Delete</button>
           </div>
