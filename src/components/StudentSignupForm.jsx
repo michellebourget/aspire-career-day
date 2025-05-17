@@ -19,7 +19,6 @@ const StudentSignupForm = () => {
       setSessions(sessionSnapshot.docs.map(doc => ({ id: doc.id, ...doc.data() })));
       setSignups(signupSnapshot.docs.map(doc => doc.data()));
 
-      // Fetch signup deadline
       const deadlineDoc = await getDoc(doc(db, 'settings', 'signup'));
       if (deadlineDoc.exists()) {
         const deadline = deadlineDoc.data().deadline?.toDate();
@@ -110,8 +109,19 @@ const StudentSignupForm = () => {
   if (submitted) {
     return (
       <div style={{ padding: '20px' }}>
-        <h2>Thank you for signing up!</h2>
-        <p>You'll receive a confirmation email shortly.</p>
+        <h2>Thank you for signing up, {name}!</h2>
+        <p>A confirmation has been sent to <strong>{email}</strong>.</p>
+
+        <h3>Your Sessions:</h3>
+        <ul>
+          {selectedSessions.map((s, index) => (
+            <li key={index}>{s}</li>
+          ))}
+        </ul>
+
+        <button onClick={() => window.print()} style={{ marginTop: '1rem' }}>
+          Print Confirmation
+        </button>
       </div>
     );
   }
