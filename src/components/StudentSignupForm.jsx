@@ -1,4 +1,3 @@
-// src/components/StudentSignupForm.jsx
 import React, { useState, useEffect } from 'react';
 import { collection, getDocs, addDoc, query, where, Timestamp } from 'firebase/firestore';
 import { db } from '../firebase/firebase';
@@ -6,6 +5,7 @@ import { db } from '../firebase/firebase';
 const StudentSignupForm = () => {
   const [student, setStudent] = useState({ name: '', email: '', sessions: [] });
   const [sessions, setSessions] = useState([]);
+  const [signups, setSignups] = useState([]);
   const [submitted, setSubmitted] = useState(false);
   const [error, setError] = useState('');
   const [deadlinePassed, setDeadlinePassed] = useState(false);
@@ -15,6 +15,10 @@ const StudentSignupForm = () => {
       const sessionsSnap = await getDocs(collection(db, 'sessions'));
       const sessionData = sessionsSnap.docs.map(doc => ({ id: doc.id, ...doc.data() }));
       setSessions(sessionData);
+
+      const signupsSnap = await getDocs(collection(db, 'signups'));
+      const signupData = signupsSnap.docs.map(doc => doc.data());
+      setSignups(signupData);
 
       const deadlineDoc = await getDocs(query(collection(db, 'settings')));
       const deadline = deadlineDoc.docs.find(doc => doc.id === 'signup')?.data()?.deadline;
@@ -56,6 +60,11 @@ const StudentSignupForm = () => {
     }
   };
 
+  const getRemainingSpots = (sessionName, capacity) => {
+    const enrolled = signups.filter(s => s.sessions?.includes(sessionName)).length;
+    return capacity - enrolled;
+  };
+
   if (deadlinePassed) {
     return <div style={{ padding: '2rem', textAlign: 'center' }}><h3>Signups are now closed.</h3></div>;
   }
@@ -85,6 +94,8 @@ const StudentSignupForm = () => {
         <p style={{ marginTop: '1rem' }}><strong>Select 3 sessions:</strong></p>
         {sessions.map(session => {
           const isChecked = student.sessions.includes(session.name);
+          const spotsLeft = getRemainingSpots(session.name, session.capacity);
+
           return (
             <div key={session.id} style={{ border: '1px solid #ccc', borderRadius: '8px', padding: '1rem', marginBottom: '1rem' }}>
               <label style={{ display: 'flex', alignItems: 'center' }}>
@@ -92,13 +103,21 @@ const StudentSignupForm = () => {
                   type="checkbox"
                   checked={isChecked}
                   onChange={() => toggleSession(session.name)}
-                  disabled={!isChecked && student.sessions.length >= 3}
+                  disabled={
+                    (!isChecked && student.sessions.length >= 3) ||
+                    spotsLeft <= 0
+                  }
                   style={{ marginRight: '1rem' }}
                 />
                 <div>
                   <strong>{session.name}</strong>
                   <div style={{ fontSize: '0.9rem', color: '#555', marginTop: '0.25rem' }}>
                     {session.description || 'No description provided.'}
+                  </div>
+                  <div style={{ fontSize: '0.85rem', color: spotsLeft <= 0 ? 'red' : '#666', marginTop: '0.25rem' }}>
+                    {spotsLeft > 0
+                      ? `${spotsLeft} spot${spotsLeft === 1 ? '' : 's'} left`
+                      : 'Full'}
                   </div>
                   {session.imageUrl && (
                     <img src={session.imageUrl} alt={session.name} style={{ marginTop: '0.5rem', maxWidth: '100%', borderRadius: '6px' }} />
@@ -117,4 +136,3 @@ const StudentSignupForm = () => {
 };
 
 export default StudentSignupForm;
-
