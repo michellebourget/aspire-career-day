@@ -1,5 +1,5 @@
 import React, { useEffect, useState } from 'react';
-import { collection, getDocs, updateDoc, doc, deleteDoc, addDoc } from 'firebase/firestore';
+import { collection, getDocs, updateDoc, doc, deleteDoc, addDoc, getDoc, setDoc } from 'firebase/firestore';
 import { db, auth } from '../firebase/firebase';
 
 const AdminDashboard = () => {
@@ -8,17 +8,43 @@ const AdminDashboard = () => {
   const [newSession, setNewSession] = useState({ name: '', description: '', teacherEmail: '', imageUrl: '', capacity: '' });
   const [sessionEdits, setSessionEdits] = useState({});
   const [selectedFilter, setSelectedFilter] = useState('');
+  const [deadline, setDeadline] = useState('');
 
   useEffect(() => {
     const fetchData = async () => {
       const sessionsSnap = await getDocs(collection(db, 'sessions'));
       const attendanceSnap = await getDocs(collection(db, 'attendance'));
+      const deadlineDoc = await getDoc(doc(db, 'settings', 'signup'));
 
       setSessions(sessionsSnap.docs.map(doc => ({ id: doc.id, ...doc.data() })));
       setAttendanceRecords(attendanceSnap.docs.map(doc => doc.data()));
+
+      if (deadlineDoc.exists()) {
+        const deadlineTimestamp = deadlineDoc.data().deadline;
+        if (deadlineTimestamp) {
+          setDeadline(new Date(deadlineTimestamp.toDate()).toISOString().slice(0, 16));
+        }
+      }
     };
     fetchData();
   }, []);
+
+  const handleDeadlineChange = (e) => {
+    setDeadline(e.target.value);
+  };
+
+  const saveDeadline = async () => {
+    if (!deadline) return;
+    try {
+      await setDoc(doc(db, 'settings', 'signup'), {
+        deadline: new Date(deadline)
+      });
+      alert('Signup deadline updated successfully.');
+    } catch (err) {
+      console.error('Error saving deadline:', err);
+      alert('Failed to save deadline.');
+    }
+  };
 
   const handleNewSessionChange = (e) => {
     const { name, value } = e.target;
@@ -89,6 +115,17 @@ const AdminDashboard = () => {
         Sign Out
       </button>
 
+      {/* --- Signup Deadline Panel --- */}
+      <div style={{ marginBottom: '2rem' }}>
+        <h3>Signup Deadline</h3>
+        <input
+          type="datetime-local"
+          value={deadline}
+          onChange={handleDeadlineChange}
+        />
+        <button onClick={saveDeadline} style={{ marginLeft: '1rem' }}>Save Deadline</button>
+      </div>
+
       {/* --- Manage Sessions --- */}
       <div style={{ marginTop: '2rem' }}>
         <h3>Manage Sessions</h3>
@@ -148,4 +185,3 @@ const AdminDashboard = () => {
 };
 
 export default AdminDashboard;
-
